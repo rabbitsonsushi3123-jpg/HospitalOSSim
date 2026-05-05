@@ -1,19 +1,33 @@
-
 #include "Scheduler.h"
-#include "Logger.h"
 
-Scheduler::Scheduler(std::string p) : policy(p) {}
-
-void Scheduler::addProcess(Process* p) {
-    p->state = READY;
-    readyQueue.push(p);
-    Logger::log("Process added to queue");
+void Scheduler::addPatient(Process* patient) {
+    readyQueue.push(patient);
 }
 
-Process* Scheduler::getNext() {
-    if (readyQueue.empty()) return nullptr;
+bool Scheduler::isEmpty() const {
+    return readyQueue.empty();
+}
 
-    Process* p = readyQueue.front();
+Process* Scheduler::getNextPatientFCFS() {
+    if (readyQueue.empty()) {
+        return nullptr;
+    }
+
+    Process* patient = readyQueue.front();
     readyQueue.pop();
-    return p;
+    return patient;
+}
+
+Process* Scheduler::getNextPatientRR() {
+    if (readyQueue.empty()) {
+        return nullptr;
+    }
+
+    Process* patient = readyQueue.front();
+    readyQueue.pop();
+    return patient;
+}
+
+void Scheduler::requeuePatient(Process* patient) {
+    readyQueue.push(patient);
 }
