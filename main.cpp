@@ -75,11 +75,11 @@ int main() {
 
         // Run one tick
         p->runtime--;
-        Logger::log("Patient " + std::to_string(p->pid) + " running (remaining=" + std::to_string(p->runtime) + ")");
+        Logger::log("Patient " + std::to_string(p->pid) + " undergoing procedure (remaining=" + std::to_string(p->runtime) + ")");
 
         if (p->runtime <= 0) {
             p->state = TERMINATED;
-            Logger::log("Patient " + std::to_string(p->pid) + " completed");
+            Logger::log("Patient " + std::to_string(p->pid) + " operation complete");
 
             resourceManager.pool.resources[resource] = true;
             Logger::log("Patient " + std::to_string(p->pid) + " released from MRI" + std::to_string(resource + 1));
