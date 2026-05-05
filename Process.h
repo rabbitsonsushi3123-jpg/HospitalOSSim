@@ -1,16 +1,40 @@
-#ifndef PROCESS_H
-#define PROCESS_H
-
-enum State { NEW, READY, RUNNING, WAITING, TERMINATED };
+#pragma once
+#include <string>
 
 class Process {
 public:
-    int pid;
-    State state;
-    int runtime;
+    int id;
+    std::string name;
     int memoryRequired;
 
-    Process(int id, int run, int mem);
-};
+    int basePriority;
+    int currentPriority;
 
-#endif
+    int totalTicksNeeded;
+    int ticksCompleted;
+
+    int assignedResource;
+    int requestedResource;
+
+    bool memoryAllocated;
+    bool completed;
+
+    Process(
+        int id,
+        std::string name,
+        int memoryRequired,
+        int priority,
+        int totalTicksNeeded,
+        int requestedResource
+    );
+
+    bool hasResource() const;
+    void assignResource(int resourceId);
+    void releaseResource();
+
+    bool isComplete() const;
+    void runOneTick();
+
+    void decayPriority();
+    void renewPriority();
+};
