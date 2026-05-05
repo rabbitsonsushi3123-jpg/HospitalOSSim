@@ -64,9 +64,9 @@ int main() {
         if (resourceManager.pool.resources[resourceNeeded]) {
             resourceManager.pool.resources[resourceNeeded] = false;
             resource = resourceNeeded;
-            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI" + std::to_string(resource + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI " + std::to_string(resource + 1));
         } else {
-            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine" + std::to_string(resourceNeeded + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine " + std::to_string(resourceNeeded + 1));
             p->state = WAITING;
             scheduler.addProcess(p);
             time++;
@@ -82,7 +82,7 @@ int main() {
             Logger::log("Patient " + std::to_string(p->pid) + " operation complete");
 
             resourceManager.pool.resources[resource] = true;
-            Logger::log("Patient " + std::to_string(p->pid) + " released from MRI" + std::to_string(resource + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " released from MRI " + std::to_string(resource + 1));
 
             memoryManager.free(0);
 
