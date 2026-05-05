@@ -1,22 +1,39 @@
 #include "ResourceManager.h"
-#include "Logger.h"
+#include <iostream>
 
-ResourceManager::ResourceManager(int count) : pool(count) {}
+bool ResourceManager::requestResource(Process* patient, int resourceId) {
+    std::string resourceName = pool.getResourceName(resourceId);
 
-int ResourceManager::acquire() {
-    for (int i = 0; i < pool.resources.size(); i++) {
-        if (pool.resources[i]) {
-            pool.resources[i] = false;
-            Logger::log("Resource acquired");
-            return i;
-        }
+    std::cout << "[RESOURCE REQUEST] Patient " << patient->id
+              << " (" << patient->name << ") requests "
+              << resourceName << "\n";
+
+    if (pool.available[resourceId]) {
+        pool.available[resourceId] = false;
+        patient->assignResource(resourceId);
+
+        std::cout << "[RESOURCE GRANTED] " << resourceName
+                  << " assigned to Patient " << patient->id << "\n";
+
+        return true;
     }
-    return -1;
+
+    std::cout << "[RESOURCE DENIED] " << resourceName
+              << " is already in use. Patient "
+              << patient->id << " must wait.\n";
+
+    return false;
 }
 
-void ResourceManager::release(int id) {
-    if (id >= 0 && id < pool.resources.size()) {
-        pool.resources[id] = true;
-        Logger::log("Resource released");
+void ResourceManager::releaseResource(Process* patient) {
+    if (patient->hasResource()) {
+        int resourceId = patient->assignedResource;
+        std::string resourceName = pool.getResourceName(resourceId);
+
+        pool.available[resourceId] = true;
+        patient->releaseResource();
+
+        std::cout << "[RESOURCE RELEASED] Patient " << patient->id
+                  << " released " << resourceName << "\n";
     }
 }
