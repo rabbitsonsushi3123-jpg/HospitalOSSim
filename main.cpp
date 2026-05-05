@@ -75,7 +75,7 @@ int main() {
 
         // Run one tick
         p->runtime--;
-        Logger::log("Patient " + std::to_string(p->pid) + " undergoing procedure (remaining=" + std::to_string(p->runtime) + ")");
+        Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI (remaining=" + std::to_string(p->runtime) + ")");
 
         if (p->runtime <= 0) {
             p->state = TERMINATED;
