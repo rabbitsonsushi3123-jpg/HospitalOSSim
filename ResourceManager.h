@@ -1,14 +1,11 @@
-#ifndef RESOURCEMANAGER_H
-#define RESOURCEMANAGER_H
+#pragma once
 #include "ResourcePool.h"
+#include "Process.h"
 
 class ResourceManager {
 public:
     ResourcePool pool;
 
-    ResourceManager(int count);
-    int acquire();
-    void release(int id);
+    bool requestResource(Process* patient, int resourceId);
+    void releaseResource(Process* patient);
 };
-
-#endif
