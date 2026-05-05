@@ -35,12 +35,12 @@ int main() {
     // Admit all processes
     for (int i = 0; i < processes.size(); i++) {
         Process* p = processes[i];
-        Logger::log("Created Process " + std::to_string(p->pid));
+        Logger::log("Admitted Patient " + std::to_string(p->pid));
 
         int block = memoryManager.malloc(p->memoryRequired);
         if (block == -1) {
             p->state = WAITING;
-            Logger::log("Process " + std::to_string(p->pid) + " waiting for memory");
+            Logger::log("Patient " + std::to_string(p->pid) + " waiting for Operating Room");
         } else {
             p->state = READY;
             scheduler.addProcess(p);
@@ -56,7 +56,7 @@ int main() {
 
         int resourceNeeded = requiredResources[p->pid - 1];
 
-        Logger::log("[Time " + std::to_string(time) + "] Scheduling Process " + std::to_string(p->pid));
+        Logger::log("[Time " + std::to_string(time) + "] Scheduling Patient " + std::to_string(p->pid));
         p->state = RUNNING;
 
         // Try to acquire specific resource
@@ -64,9 +64,9 @@ int main() {
         if (resourceManager.pool.resources[resourceNeeded]) {
             resourceManager.pool.resources[resourceNeeded] = false;
             resource = resourceNeeded;
-            Logger::log("Process " + std::to_string(p->pid) + " acquired R" + std::to_string(resource + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI" + std::to_string(resource + 1));
         } else {
-            Logger::log("Process " + std::to_string(p->pid) + " waiting for R" + std::to_string(resourceNeeded + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine" + std::to_string(resourceNeeded + 1));
             p->state = WAITING;
             scheduler.addProcess(p);
             time++;
@@ -75,14 +75,14 @@ int main() {
 
         // Run one tick
         p->runtime--;
-        Logger::log("Process " + std::to_string(p->pid) + " running (remaining=" + std::to_string(p->runtime) + ")");
+        Logger::log("Patient " + std::to_string(p->pid) + " running (remaining=" + std::to_string(p->runtime) + ")");
 
         if (p->runtime <= 0) {
             p->state = TERMINATED;
-            Logger::log("Process " + std::to_string(p->pid) + " terminated");
+            Logger::log("Patient " + std::to_string(p->pid) + " completed");
 
             resourceManager.pool.resources[resource] = true;
-            Logger::log("Process " + std::to_string(p->pid) + " released R" + std::to_string(resource + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " released from MRI" + std::to_string(resource + 1));
 
             memoryManager.free(0);
 
