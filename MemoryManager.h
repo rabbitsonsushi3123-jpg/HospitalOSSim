@@ -1,14 +1,15 @@
-#ifndef MEMORYMANAGER_H
-#define MEMORYMANAGER_H
-#include "MemoryModel.h"
+#pragma once
+#include "Process.h"
 
 class MemoryManager {
+private:
+    int totalMemory;
+
 public:
-    MemoryModel memory;
+    int availableMemory;
 
-    MemoryManager(int size);
-    int malloc(int size);
-    void free(int index);
+    MemoryManager(int totalMemory);
+
+    bool allocate(Process* patient);
+    void deallocate(Process* patient);
 };
-
-#endif
