@@ -33,6 +33,7 @@ int main() {
     std::vector<int> requiredResources = {0, 1, 0, 2, 1};
 
     // Admit all processes
+    std::cout << "[LOG] [Time 0]" << "\n";
     for (int i = 0; i < processes.size(); i++) {
         Process* p = processes[i];
         Logger::log("Admitted Patient " + std::to_string(p->pid) + "(NEW)");
@@ -47,7 +48,7 @@ int main() {
         }
     }
 
-    int time = 0;
+    int time = 1;
 
     // loop
     while (true) {
@@ -56,7 +57,9 @@ int main() {
 
         int resourceNeeded = requiredResources[p->pid - 1];
 
+        std::cout << "\n";
         Logger::log("[Time " + std::to_string(time) + "] Scheduling Patient " + std::to_string(p->pid));
+
         p->state = RUNNING;
 
         // Try to acquire specific resource
