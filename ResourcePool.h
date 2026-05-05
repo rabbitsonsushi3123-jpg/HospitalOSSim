@@ -1,12 +1,14 @@
-#ifndef RESOURCEPOOL_H
-#define RESOURCEPOOL_H
+#pragma once
 #include <vector>
+#include <string>
 
 class ResourcePool {
 public:
-    std::vector<bool> resources;
+    std::vector<bool> available;
+    std::vector<std::string> resourceNames;
 
-    ResourcePool(int count);
+    ResourcePool();
+
+    int size() const;
+    std::string getResourceName(int resourceId) const;
 };
-
-#endif
