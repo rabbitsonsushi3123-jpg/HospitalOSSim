@@ -1,17 +1,19 @@
-#ifndef SCHEDULER_H
-#define SCHEDULER_H
+#pragma once
 #include <queue>
+#include <vector>
 #include <string>
 #include "Process.h"
 
 class Scheduler {
-public:
-    std::string policy;
+private:
     std::queue<Process*> readyQueue;
 
-    Scheduler(std::string p);
-    void addProcess(Process* p);
-    Process* getNext();
-};
+public:
+    void addPatient(Process* patient);
+    bool isEmpty() const;
 
-#endif
+    Process* getNextPatientFCFS();
+    Process* getNextPatientRR();
+
+    void requeuePatient(Process* patient);
+};
