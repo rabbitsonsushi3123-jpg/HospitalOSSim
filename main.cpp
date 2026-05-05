@@ -35,12 +35,12 @@ int main() {
     // Admit all processes
     for (int i = 0; i < processes.size(); i++) {
         Process* p = processes[i];
-        Logger::log("Admitted Patient " + std::to_string(p->pid));
+        Logger::log("Admitted Patient " + std::to_string(p->pid) + "(NEW)");
 
         int block = memoryManager.malloc(p->memoryRequired);
         if (block == -1) {
             p->state = WAITING;
-            Logger::log("Patient " + std::to_string(p->pid) + " waiting for Operating Room");
+            Logger::log("Patient " + std::to_string(p->pid) + " waiting for Operating Room (READY)");
         } else {
             p->state = READY;
             scheduler.addProcess(p);
@@ -64,9 +64,9 @@ int main() {
         if (resourceManager.pool.resources[resourceNeeded]) {
             resourceManager.pool.resources[resourceNeeded] = false;
             resource = resourceNeeded;
-            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI " + std::to_string(resource + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI " + std::to_string(resource + 1) + "(RUNNING)");
         } else {
-            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine " + std::to_string(resourceNeeded + 1));
+            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine " + std::to_string(resourceNeeded + 1) + "(WAITING)");
             p->state = WAITING;
             scheduler.addProcess(p);
             time++;
@@ -79,7 +79,7 @@ int main() {
 
         if (p->runtime <= 0) {
             p->state = TERMINATED;
-            Logger::log("Patient " + std::to_string(p->pid) + " operation complete");
+            Logger::log("Patient " + std::to_string(p->pid) + " operation complete (TERMINATED)");
 
             resourceManager.pool.resources[resource] = true;
             Logger::log("Patient " + std::to_string(p->pid) + " released from MRI " + std::to_string(resource + 1));
