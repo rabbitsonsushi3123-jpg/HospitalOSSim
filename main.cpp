@@ -1,102 +1,226 @@
 #include <iostream>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
-#include "Logger.h"
-#include "MemoryManager.h"
-#include "MemoryModel.h"
-#include "Process.h"
-#include "ResourceManager.h"
-#include "ResourcePool.h"
-#include "Scheduler.h"
+#include <queue>
+#include <string>
+#include <algorithm>
 
-// Global system components
-Scheduler scheduler("FCFS");
-MemoryManager memoryManager(1024);
-ResourceManager resourceManager(3); // R1, R2, R3
-Logger logger;
+#include "Process.h"
+#include "Scheduler.h"
+#include "MemoryManager.h"
+#include "ResourceManager.h"
+
+void tryMovePatientsFromMemoryWaitQueue(
+    std::queue<Process*>& memoryWaitQueue,
+    Scheduler& scheduler,
+    MemoryManager& memoryManager
+) {
+    int queueSize = memoryWaitQueue.size();
+
+    for (int i = 0; i < queueSize; i++) {
+        Process* patient = memoryWaitQueue.front();
+        memoryWaitQueue.pop();
+
+        std::cout << "[MEMORY WAIT CHECK] Checking Patient "
+                  << patient->id << "\n";
+
+        if (memoryManager.allocate(patient)) {
+            std::cout << "[MOVED TO READY QUEUE] Patient "
+                      << patient->id << " now has memory\n";
+            scheduler.addPatient(patient);
+        } else {
+            std::cout << "[STAYS IN MEMORY WAIT QUEUE] Patient "
+                      << patient->id << "\n";
+            memoryWaitQueue.push(patient);
+        }
+    }
+}
+
+void renewAllPriorities(std::vector<Process*>& patients) {
+    std::cout << "[PRIORITY RENEWAL] 5 ticks passed. Renewing all patient priorities.\n";
+
+    for (Process* patient : patients) {
+        if (!patient->completed) {
+            patient->renewPriority();
+
+            std::cout << "[PRIORITY RENEWED] Patient "
+                      << patient->id
+                      << " priority restored to "
+                      << patient->currentPriority << "\n";
+        }
+    }
+}
 
 int main() {
-    std::srand(std::time(nullptr));
+    std::string schedulingMode;
 
-    Logger::log("OS Simulation Started");
+    std::cout << "Choose scheduling mode: RR or FCFS: ";
+    std::cin >> schedulingMode;
 
-    Process* p1 = new Process(1, 4, 120); // needs R1
-    Process* p2 = new Process(2, 3, 150); // needs R2
-    Process* p3 = new Process(3, 5, 200); // needs R1 (conflict with p1)
-    Process* p4 = new Process(4, 2, 100); // needs R3
-    Process* p5 = new Process(5, 3, 180); // needs R2 (shared with p2 but different timing)
+    if (schedulingMode != "RR" && schedulingMode != "FCFS") {
+        std::cout << "Invalid mode. Defaulting to FCFS.\n";
+        schedulingMode = "FCFS";
+    }
 
-    std::vector<Process*> processes = {p1, p2, p3, p4, p5};
+    std::cout << "\n[SIMULATION STARTED] Mode: "
+              << schedulingMode << "\n\n";
 
-    // Assign required resources manually (extend Process if needed)
-    std::vector<int> requiredResources = {0, 1, 0, 2, 1};
+    Scheduler scheduler;
+    MemoryManager memoryManager(1024);
+    ResourceManager resourceManager;
 
-    // Admit all processes
-    std::cout << "[LOG] [Time 0]" << "\n";
-    for (int i = 0; i < processes.size(); i++) {
-        Process* p = processes[i];
-        Logger::log("Admitted Patient " + std::to_string(p->pid) + "(NEW)");
+    std::queue<Process*> memoryWaitQueue;
+    std::queue<Process*> resourceWaitQueue;
 
-        int block = memoryManager.malloc(p->memoryRequired);
-        if (block == -1) {
-            p->state = WAITING;
-            Logger::log("Patient " + std::to_string(p->pid) + " waiting for Operating Room (READY)");
+    std::vector<Process*> patients = {
+        new Process(1, "Patient A", 300, 5, 3, 0), // MRI Scanner
+        new Process(2, "Patient B", 300, 4, 2, 0), // MRI Scanner, causes denial
+        new Process(3, "Patient C", 600, 3, 2, 2), // Operating Room
+        new Process(4, "Patient D", 500, 2, 2, 3), // X-Ray Machine
+        new Process(5, "Patient E", 700, 1, 2, 1)  // Blood Lab, memory wait likely
+    };
+
+    for (Process* patient : patients) {
+        std::cout << "[NEW PATIENT] Patient " << patient->id
+                  << " (" << patient->name << ")"
+                  << " | Memory: " << patient->memoryRequired
+                  << " | Priority: " << patient->currentPriority
+                  << " | Needs: "
+                  << resourceManager.pool.getResourceName(patient->requestedResource)
+                  << "\n";
+
+        if (memoryManager.allocate(patient)) {
+            scheduler.addPatient(patient);
         } else {
-            p->state = READY;
-            scheduler.addProcess(p);
+            std::cout << "[ADDED TO MEMORY WAIT QUEUE] Patient "
+                      << patient->id << "\n";
+            memoryWaitQueue.push(patient);
         }
+
+        std::cout << "\n";
     }
 
     int time = 1;
+    int completedPatients = 0;
+    int totalPatients = patients.size();
 
-    // loop
-    while (true) {
-        Process* p = scheduler.getNext();
-        if (!p) break;
+    while (completedPatients < totalPatients) {
+        std::cout << "\n==============================\n";
+        std::cout << "[Time " << time << "]\n";
+        std::cout << "==============================\n";
 
-        int resourceNeeded = requiredResources[p->pid - 1];
+        if (time % 5 == 0) {
+            renewAllPriorities(patients);
+        }
 
-        std::cout << "\n";
-        Logger::log("[Time " + std::to_string(time) + "] Scheduling Patient " + std::to_string(p->pid));
+        tryMovePatientsFromMemoryWaitQueue(
+            memoryWaitQueue,
+            scheduler,
+            memoryManager
+        );
 
-        p->state = RUNNING;
+        int resourceWaitSize = resourceWaitQueue.size();
 
-        // Try to acquire specific resource
-        int resource = -1;
-        if (resourceManager.pool.resources[resourceNeeded]) {
-            resourceManager.pool.resources[resourceNeeded] = false;
-            resource = resourceNeeded;
-            Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI " + std::to_string(resource + 1) + "(RUNNING)");
-        } else {
-            Logger::log("Patient " + std::to_string(p->pid) + " waiting for MRI Machine " + std::to_string(resourceNeeded + 1) + "(WAITING)");
-            p->state = WAITING;
-            scheduler.addProcess(p);
+        for (int i = 0; i < resourceWaitSize; i++) {
+            Process* waitingPatient = resourceWaitQueue.front();
+            resourceWaitQueue.pop();
+
+            std::cout << "[RESOURCE WAIT CHECK] Retrying Patient "
+                      << waitingPatient->id << "\n";
+
+            if (resourceManager.requestResource(
+                    waitingPatient,
+                    waitingPatient->requestedResource
+                )) {
+                scheduler.addPatient(waitingPatient);
+            } else {
+                resourceWaitQueue.push(waitingPatient);
+            }
+        }
+
+        if (scheduler.isEmpty()) {
+            std::cout << "[CPU IDLE] No patient is ready this tick.\n";
             time++;
             continue;
         }
 
-        // Run one tick
-        p->runtime--;
-        Logger::log("Patient " + std::to_string(p->pid) + " undergoing MRI (remaining=" + std::to_string(p->runtime) + ")");
+        Process* currentPatient = nullptr;
 
-        if (p->runtime <= 0) {
-            p->state = TERMINATED;
-            Logger::log("Patient " + std::to_string(p->pid) + " operation complete (TERMINATED)");
-
-            resourceManager.pool.resources[resource] = true;
-            Logger::log("Patient " + std::to_string(p->pid) + " released from MRI " + std::to_string(resource + 1));
-
-            memoryManager.free(0);
-
-            delete p;
+        if (schedulingMode == "FCFS") {
+            currentPatient = scheduler.getNextPatientFCFS();
         } else {
-            // Release resource after each tick (simplified time-sharing)
-            resourceManager.pool.resources[resource] = true;
-            scheduler.addProcess(p);
+            currentPatient = scheduler.getNextPatientRR();
+        }
+
+        if (currentPatient == nullptr || currentPatient->completed) {
+            time++;
+            continue;
+        }
+
+        std::cout << "[SELECTED] Patient " << currentPatient->id
+                  << " (" << currentPatient->name << ")"
+                  << " | Priority: "
+                  << currentPatient->currentPriority << "\n";
+
+        if (!currentPatient->hasResource()) {
+            bool granted = resourceManager.requestResource(
+                currentPatient,
+                currentPatient->requestedResource
+            );
+
+            if (!granted) {
+                resourceWaitQueue.push(currentPatient);
+                time++;
+                continue;
+            }
+        }
+
+        std::cout << "[RUNNING] Patient " << currentPatient->id
+                  << " completed tick "
+                  << currentPatient->ticksCompleted + 1
+                  << " of "
+                  << currentPatient->totalTicksNeeded << "\n";
+
+        currentPatient->runOneTick();
+
+        std::cout << "[PRIORITY DECAY] Patient "
+                  << currentPatient->id
+                  << " priority changed from "
+                  << currentPatient->currentPriority;
+
+        currentPatient->decayPriority();
+
+        std::cout << " to "
+                  << currentPatient->currentPriority << "\n";
+
+        if (currentPatient->isComplete()) {
+            std::cout << "[TERMINATED] Patient "
+                      << currentPatient->id
+                      << " has finished treatment.\n";
+
+            resourceManager.releaseResource(currentPatient);
+            memoryManager.deallocate(currentPatient);
+            completedPatients++;
+        } else {
+            if (schedulingMode == "RR") {
+                std::cout << "[ROUND ROBIN] Patient "
+                          << currentPatient->id
+                          << " returned to ready queue.\n";
+                scheduler.requeuePatient(currentPatient);
+            } else {
+                std::cout << "[FCFS] Patient "
+                          << currentPatient->id
+                          << " continues waiting in ready queue.\n";
+                scheduler.requeuePatient(currentPatient);
+            }
         }
 
         time++;
+    }
+
+    std::cout << "\n[SIMULATION COMPLETE]\n";
+
+    for (Process* patient : patients) {
+        delete patient;
     }
 
     return 0;
